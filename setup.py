@@ -10,16 +10,17 @@ launch_files = [os.path.relpath(f, package_name) for f in glob(os.path.join(pack
 # Get all the config files
 config_files = [os.path.relpath(f, package_name) for f in glob(os.path.join(package_name, 'config', '*'))]
 
+# Get all the test files
+test_files = [os.path.relpath(f, package_name) for f in glob(os.path.join(package_name, 'test', '*.py'))]
+
 setup(
     name=package_name,
     version='0.0.1',
-    packages=find_packages(exclude=['test']),
+    packages=find_packages(),  # Removed the exclude argument
     data_files=[
-        ('share/ament_index/resource_index/packages', ['resource/' + package_name]),
-        ('share/' + package_name, ['package.xml']),
-        # Include all files in launch and config directories
-        (os.path.join('share', package_name, 'launch'), launch_files),
-        (os.path.join('share', package_name, 'config'), config_files),
+        (os.path.join('share', package_name), ['package.xml']),
+        (os.path.join('share', package_name, 'launch'), glob('launch/*.launch.py')),
+        (os.path.join('share', package_name, 'config'), glob('config/*.*')),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -30,7 +31,8 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            #'predictor = drone_path_predictor_ros.predictor:main',
+            'trajectory_predictor_node = DronePathPredictor_ros.trajectory_predictor_node:main',
         ],
     },
 )
+

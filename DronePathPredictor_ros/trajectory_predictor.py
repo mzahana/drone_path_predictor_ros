@@ -1,4 +1,4 @@
-# trajectory_predictor.py
+#!/usr/bin/env python3
 import numpy as np
 import torch
 import torch.nn as nn
@@ -6,8 +6,8 @@ import sys
 import time
 
 # Check if GPU is available
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print(f'device = {device}\n')
+# device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+# print(f'device = {device}\n')
 
 # The rest of your functions can also stay as is 
 def load_normalization_parameters(npz_file_path):
@@ -21,7 +21,7 @@ def normalize_sequence(sequence, mean, std):
 def denormalize_sequence(sequence, mean, std):
     return (sequence * std) + mean
 
-def predict_trajectory(model, sequence):
+def predict_trajectory(model, sequence, device):
     sequence_tensor = torch.tensor(sequence, dtype=torch.float32).unsqueeze(0).to(device)
     
     with torch.no_grad():
@@ -34,7 +34,7 @@ def compute_velocity(position_sequence, dt):
     velocity = diff / dt
     return velocity
 
-def plot_on_ax(ax, inputs, predictions, actuals=None, title='', linestyle='-', color='blue'):
+def plot_on_ax(self, ax, inputs, predictions, actuals=None, title='', linestyle='-', color='blue'):
     ax.plot(inputs[:, 0], inputs[:, 1], inputs[:, 2], label='Input', linestyle=linestyle, color=color, linewidth=2)
     ax.plot(predictions[:, 0], predictions[:, 1], predictions[:, 2], label='Predicted', linestyle='--', color='red', linewidth=2)
     
@@ -55,7 +55,10 @@ def plot_on_ax(ax, inputs, predictions, actuals=None, title='', linestyle='-', c
 def compute_predicted_positions(last_position, predicted_velocity, dt):
     predicted_positions = [last_position]
     for v in predicted_velocity:
-        new_position = predicted_positions[-1] + v * dt
+        # print("v: \n", v)
+        # print("last position: \n", predicted_positions[-1])
+        new_position = predicted_positions[-1] + (v * dt)
+        # print("new_position: \n", new_position)
         predicted_positions.append(new_position)
     return np.array(predicted_positions)
 
@@ -67,10 +70,11 @@ class PositionPredictor(nn.Module):
         self.gru1 = nn.GRU(input_dim, hidden_dim, num_layers, batch_first=True)
         self.gru2 = nn.GRU(hidden_dim, hidden_dim, num_layers, batch_first=True)
         self.fc = nn.Linear(hidden_dim, output_dim)
+        self.hidden_dim = hidden_dim
 
     def forward(self, x):
         out, h_n = self.gru1(x)
-        dec_input = torch.zeros(x.size(0), 10, hidden_dim).to(x.device)
+        dec_input = torch.zeros(x.size(0), 10, self.hidden_dim).to(x.device)
         out, _ = self.gru2(dec_input, h_n)
         out = self.fc(out)
         return out
@@ -83,10 +87,11 @@ class VelocityPredictor(nn.Module):
         self.gru1 = nn.GRU(input_dim, hidden_dim, num_layers, batch_first=True)
         self.gru2 = nn.GRU(hidden_dim, hidden_dim, num_layers, batch_first=True)
         self.fc = nn.Linear(hidden_dim, output_dim)
+        self.hidden_dim = hidden_dim
 
     def forward(self, x):
         out, h_n = self.gru1(x)
-        dec_input = torch.zeros(x.size(0), 10, hidden_dim).to(x.device)
+        dec_input = torch.zeros(x.size(0), 10, self.hidden_dim).to(x.device)
         out, _ = self.gru2(dec_input, h_n)
         out = self.fc(out)
         return out
@@ -96,8 +101,10 @@ class Predictor:
                        velocity_model_path,
                        position_npz_path,
                        velocity_npz_path,
-                       device, input_dim=3, hidden_dim=64, output_dim=3, num_layers=2):
-        self.device = device
+                       input_dim=3, hidden_dim=64, output_dim=3, num_layers=2,
+                       input_length=21,
+                       output_length=10):
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         
         # Load models and normalization parameters, similar to what you did in the if __name__ == '__main__': block
         self.position_model = PositionPredictor(input_dim, hidden_dim, output_dim, num_layers)
@@ -110,29 +117,29 @@ class Predictor:
         self.velocity_model.to(self.device)
         self.velocity_model.eval()
 
-        self.pos_input_mean, self.pos_input_std, self.pos_target_mean, self.pos_target_std = self.load_normalization_parameters(position_npz_path)
-        self.vel_input_mean, self.vel_input_std, self.vel_target_mean, self.vel_target_std = self.load_normalization_parameters(velocity_npz_path)
+        self.pos_input_mean, self.pos_input_std, self.pos_target_mean, self.pos_target_std = load_normalization_parameters(position_npz_path)
+        self.vel_input_mean, self.vel_input_std, self.vel_target_mean, self.vel_target_std = load_normalization_parameters(velocity_npz_path)
 
-    def predict_positions(self, sequence, dt):
+    def predict_positions(self, sequence):
         # Normalize the sequence using the loaded mean and std
         normalized_position_sequence = normalize_sequence(sequence[:-1], self.pos_input_mean, self.pos_input_std)
         # Perform prediction using the loaded models
-        predicted_normalized_position = predict_trajectory(self.position_model, normalized_position_sequence)
+        predicted_normalized_position = predict_trajectory(self.position_model, normalized_position_sequence, self.device)
         # Denormalize the predictions
         predicted_positions = denormalize_sequence(predicted_normalized_position, self.pos_target_mean, self.pos_target_std)
         
-        return predicted_positions
+        return predicted_positions.copy()
     
     def predict_positions_from_velocity(self, pos_sequence, dt):
         # Compute velocity from the 21-point input position sequence
-        input_velocity = compute_velocity(pos_sequence, dt=0.1)
+        input_velocity = compute_velocity(pos_sequence, dt)
         # Normalize the input sequence for the velocity model
         normalized_velocity_input = normalize_sequence(input_velocity, self.vel_input_mean, self.vel_input_std)
-        predicted_normalized_velocity_output = predict_trajectory(self.velocity_model, normalized_velocity_input)
+        predicted_normalized_velocity_output = predict_trajectory(self.velocity_model, normalized_velocity_input, self.device)
         # Denormalize the predicted velocity trajectory
         predicted_velocity_output = denormalize_sequence(predicted_normalized_velocity_output, self.vel_target_mean, self.vel_target_std)
         # Compute the predicted position using the last point in the input sequence, predicted velocities and dt
         predicted_positions_from_velocity = compute_predicted_positions(pos_sequence[-1], predicted_velocity_output, dt)
 
-        return predicted_positions_from_velocity
+        return predicted_positions_from_velocity.copy()
 

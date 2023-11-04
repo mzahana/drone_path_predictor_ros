@@ -1,0 +1,11 @@
+# params.yaml
+trajectory_predictor_node:
+  ros__parameters:
+    position_model_path: /home/user/shared_volume/ros2_ws/src/DronePathPredictor_ros/config/position_mix_best_model.pth
+    velocity_model_path: /home/user/shared_volume/ros2_ws/src/DronePathPredictor_ros/config/velocity_mix_best_model.pth
+    position_npz_path: /home/user/shared_volume/ros2_ws/src/DronePathPredictor_ros/config/position_mix_norm_stats.npz
+    velocity_npz_path: /home/user/shared_volume/ros2_ws/src/DronePathPredictor_ros/config/velocity_mix_norm_stats.npz
+    buffer_duration: 2.0
+    dt: 0.1
+    input_length: 20
+    output_length: 10
