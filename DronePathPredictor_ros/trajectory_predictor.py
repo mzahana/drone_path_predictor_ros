@@ -79,6 +79,36 @@ class PositionPredictor(nn.Module):
         out = self.fc(out)
         return out
 
+# Trajectory Predictor Model Definition
+class PositionPredictor2(nn.Module):
+    def __init__(self, input_dim, hidden_dim, output_dim, num_layers):
+        super(PositionPredictor2, self).__init__()
+
+        # Initialize the GRUs
+        self.grus = nn.ModuleList([nn.GRU(input_dim if i == 0 else hidden_dim, 
+                                          hidden_dim, 
+                                          num_layers, 
+                                          batch_first=True) 
+                                   for i in range(num_layers)])
+
+        # The final fully connected layer
+        self.fc = nn.Linear(hidden_dim, output_dim)
+
+        # Store the hidden dimension to use later
+        self.hidden_dim = hidden_dim
+
+    def forward(self, x):
+        h_n = None
+        # Pass through each of the GRU layers
+        for i, gru in enumerate(self.grus):
+            out, h_n = gru(x if i == 0 else dec_input, h_n)
+            if i < len(self.grus) - 1:  # Prepare dec_input if not last GRU layer
+                dec_input = torch.zeros(x.size(0), out.size(1), self.hidden_dim).to(x.device)
+        
+        # Pass the output of the last GRU layer through the fully connected layer
+        out = self.fc(out)
+        return out
+    
 # Velocity Predictor Model Definition
 class VelocityPredictor(nn.Module):
     def __init__(self, input_dim, hidden_dim, output_dim, num_layers):
@@ -101,20 +131,27 @@ class Predictor:
                        velocity_model_path,
                        position_npz_path,
                        velocity_npz_path,
-                       input_dim=3, hidden_dim=64, output_dim=3, num_layers=2,
-                       input_length=21,
-                       output_length=10):
+                       pos_input_dim=3, pos_hidden_dim=64, pos_output_dim=3, pos_num_layers=2, pos_input_length=21, pos_output_length=10,
+                       vel_input_dim=3, vel_hidden_dim=64, vel_output_dim=3, vel_num_layers=2, vel_input_length=21, vel_output_length=10):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         
         # Load models and normalization parameters, similar to what you did in the if __name__ == '__main__': block
-        self.position_model = PositionPredictor(input_dim, hidden_dim, output_dim, num_layers)
+        # checkpoint = torch.load(position_model_path)
+        # Extract the state dictionary
+        # model_state_dict = checkpoint['state_dict']
+        self.position_model = PositionPredictor(pos_input_dim, pos_hidden_dim, pos_output_dim, pos_num_layers)
         self.position_model.load_state_dict(torch.load(position_model_path, map_location=self.device))
         self.position_model.to(self.device)
+        # self.position_model.load_state_dict(model_state_dict)
         self.position_model.eval()
 
-        self.velocity_model = VelocityPredictor(input_dim, hidden_dim, output_dim, num_layers)
+        # checkpoint = torch.load(velocity_model_path)
+        # Extract the state dictionary
+        # model_state_dict = checkpoint['state_dict']
+        self.velocity_model = VelocityPredictor(vel_input_dim, vel_hidden_dim, vel_output_dim, vel_num_layers)
         self.velocity_model.load_state_dict(torch.load(velocity_model_path, map_location=self.device))
         self.velocity_model.to(self.device)
+        # self.velocity_model.load_state_dict(model_state_dict)
         self.velocity_model.eval()
 
         self.pos_input_mean, self.pos_input_std, self.pos_target_mean, self.pos_target_std = load_normalization_parameters(position_npz_path)

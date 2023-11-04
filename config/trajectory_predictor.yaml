@@ -7,5 +7,14 @@ trajectory_predictor_node:
     velocity_npz_path: /home/user/shared_volume/ros2_ws/src/DronePathPredictor_ros/config/velocity_mix_norm_stats.npz
     buffer_duration: 2.0
     dt: 0.1
-    input_length: 20
-    output_length: 10
+    pos_input_length: 20
+    pos_output_length: 10
+    pos_hidden_dim: 64
+    pos_num_layers: 2
+
+    vel_input_length: 20
+    vel_output_length: 10
+    vel_hidden_dim: 64
+    vel_num_layers: 2
+
+    use_velocity_prediction: false

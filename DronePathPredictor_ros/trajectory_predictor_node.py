@@ -23,6 +23,11 @@ class TrajectoryPredictorNode(Node):
                 ('velocity_npz_path', 'path/to/your/velocity_normalization_parameters.npz'),
                 ('buffer_duration', 2.0),
                 ('dt', 0.1),
+                ('pos_hidden_dim', 64),
+                ('pos_num_layers', 2),
+                ('vel_hidden_dim', 64),
+                ('vel_num_layers', 2),
+                ('use_velocity_prediction', False),
             ]
         )
         
@@ -32,12 +37,19 @@ class TrajectoryPredictorNode(Node):
         velocity_npz_path = self.get_parameter('velocity_npz_path').get_parameter_value().string_value
         self.buffer_duration = self.get_parameter('buffer_duration').get_parameter_value().double_value
         self.dt = self.get_parameter('dt').get_parameter_value().double_value
+        self.pos_hidden_dim = self.get_parameter('pos_hidden_dim').get_parameter_value().integer_value
+        self.pos_num_layers = self.get_parameter('pos_num_layers').get_parameter_value().integer_value
+        self.vel_hidden_dim = self.get_parameter('vel_hidden_dim').get_parameter_value().integer_value
+        self.vel_num_layers = self.get_parameter('vel_num_layers').get_parameter_value().integer_value
+        self.use_velocity_prediction = self.get_parameter('use_velocity_prediction').get_parameter_value().bool_value
 
         # Initialize the Predictor
         self.predictor = Predictor(position_model_path,
                                    velocity_model_path,
                                    position_npz_path,
-                                   velocity_npz_path)
+                                   velocity_npz_path,
+                                   pos_hidden_dim=self.pos_hidden_dim, pos_num_layers=self.pos_num_layers,
+                                   vel_hidden_dim=self.vel_hidden_dim, vel_num_layers=self.vel_num_layers)
         self.get_logger().info('Initialized position and velocity models')
         
         # Create the PoseBuffer
@@ -90,14 +102,19 @@ class TrajectoryPredictorNode(Node):
             
             # self.get_logger().info('Predicted Positions: {}'.format(predicted_positions))
 
-            if predicted_positions is not None:
+            if self.use_velocity_prediction:
+                predictions = predicted_positions_from_velocity
+            else:
+                predictions = predicted_positions
+
+            if predictions is not None:
                 # Create a Path message
                 path_msg = Path()
                 path_msg.header.stamp = self.get_clock().now().to_msg()
                 path_msg.header.frame_id = msg.header.frame_id
 
                 # Fill the Path message with the predicted positions
-                for position in predicted_positions:
+                for position in predictions:
                     pose_stamped = PoseStamped()
                     pose_stamped.header.stamp = self.get_clock().now().to_msg()
                     pose_stamped.header.frame_id = msg.header.frame_id
@@ -115,7 +132,7 @@ class TrajectoryPredictorNode(Node):
                 path_msg.header.stamp = self.get_clock().now().to_msg()
                 path_msg.header.frame_id = msg.header.frame_id
 
-                # Fill the Path message with the predicted positions
+                # Fill the Path message with the history positions
                 for position in regularly_sampled_positions[-int(self.buffer_duration/self.dt):]:
                     pose_stamped = PoseStamped()
                     pose_stamped.header.stamp = self.get_clock().now().to_msg()
