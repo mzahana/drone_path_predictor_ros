@@ -25,8 +25,10 @@ class TrajectoryPredictorNode(Node):
                 ('dt', 0.1),
                 ('pos_hidden_dim', 64),
                 ('pos_num_layers', 2),
+                ('pos_dropout', 0.5),
                 ('vel_hidden_dim', 64),
                 ('vel_num_layers', 2),
+                ('vel_dropout', 0.5),
                 ('use_velocity_prediction', False),
             ]
         )
@@ -39,8 +41,10 @@ class TrajectoryPredictorNode(Node):
         self.dt = self.get_parameter('dt').get_parameter_value().double_value
         self.pos_hidden_dim = self.get_parameter('pos_hidden_dim').get_parameter_value().integer_value
         self.pos_num_layers = self.get_parameter('pos_num_layers').get_parameter_value().integer_value
+        self.pos_dropout = self.get_parameter('pos_dropout').get_parameter_value().double_value
         self.vel_hidden_dim = self.get_parameter('vel_hidden_dim').get_parameter_value().integer_value
         self.vel_num_layers = self.get_parameter('vel_num_layers').get_parameter_value().integer_value
+        self.vel_dropout = self.get_parameter('vel_dropout').get_parameter_value().double_value
         self.use_velocity_prediction = self.get_parameter('use_velocity_prediction').get_parameter_value().bool_value
 
         # Initialize the Predictor
@@ -48,8 +52,8 @@ class TrajectoryPredictorNode(Node):
                                    velocity_model_path,
                                    position_npz_path,
                                    velocity_npz_path,
-                                   pos_hidden_dim=self.pos_hidden_dim, pos_num_layers=self.pos_num_layers,
-                                   vel_hidden_dim=self.vel_hidden_dim, vel_num_layers=self.vel_num_layers)
+                                   pos_hidden_dim=self.pos_hidden_dim, pos_num_layers=self.pos_num_layers, pos_dropout=self.pos_dropout,
+                                   vel_hidden_dim=self.vel_hidden_dim, vel_num_layers=self.vel_num_layers, vel_dropout=self.vel_dropout)
         self.get_logger().info('Initialized position and velocity models')
         
         # Create the PoseBuffer
@@ -113,6 +117,16 @@ class TrajectoryPredictorNode(Node):
                 path_msg.header.stamp = self.get_clock().now().to_msg()
                 path_msg.header.frame_id = msg.header.frame_id
 
+                # Add the initial position
+                pose_stamped = PoseStamped()
+                pose_stamped.header.stamp = self.get_clock().now().to_msg()
+                pose_stamped.header.frame_id = msg.header.frame_id
+                pose_stamped.pose.position.x = position[0]
+                pose_stamped.pose.position.y = position[1]
+                pose_stamped.pose.position.z = position[2]
+                # Assume no orientation information is available; quaternion set to identity
+                pose_stamped.pose.orientation.w = 1.0
+                path_msg.poses.append(pose_stamped)
                 # Fill the Path message with the predicted positions
                 for position in predictions:
                     pose_stamped = PoseStamped()

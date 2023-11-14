@@ -109,6 +109,35 @@ class PositionPredictor2(nn.Module):
         out = self.fc(out)
         return out
     
+class PositionPredictor3(nn.Module):
+    def __init__(self, input_dim, hidden_dim, output_dim, num_layers, dropout=0.5):
+        super(PositionPredictor3, self).__init__()
+        
+        self.hidden_dim = hidden_dim  # Add this line to set hidden_dim as an instance attribute
+
+        # Encoding layer with dropout
+        self.gru1 = nn.GRU(input_dim, hidden_dim, num_layers, batch_first=True, dropout=dropout)
+
+        # Decoding layer
+        self.gru2 = nn.GRU(hidden_dim, hidden_dim, num_layers, batch_first=True)
+
+        # Fully connected layer
+        self.fc = nn.Linear(hidden_dim, output_dim)
+
+    def forward(self, x):
+        # Encoding
+        out, h_n = self.gru1(x)
+
+        # Decoding
+        # We'll initialize the decoder's first input as zeros.
+        dec_input = torch.zeros(x.size(0), 10, self.hidden_dim).to(x.device)  # Assuming batch_first is True
+        out, _ = self.gru2(dec_input, h_n)
+
+        # Predict the next 10 points
+        out = self.fc(out)
+
+        return out
+    
 # Velocity Predictor Model Definition
 class VelocityPredictor(nn.Module):
     def __init__(self, input_dim, hidden_dim, output_dim, num_layers):
@@ -126,20 +155,50 @@ class VelocityPredictor(nn.Module):
         out = self.fc(out)
         return out
 
+class VelocityPredictor2(nn.Module):
+    def __init__(self, input_dim, hidden_dim, output_dim, num_layers, dropout=0.5):
+        super(VelocityPredictor2, self).__init__()
+        
+        self.hidden_dim = hidden_dim  # Add this line to set hidden_dim as an instance attribute
+
+        # Encoding layer with dropout
+        self.gru1 = nn.GRU(input_dim, hidden_dim, num_layers, batch_first=True, dropout=dropout)
+
+        # Decoding layer
+        self.gru2 = nn.GRU(hidden_dim, hidden_dim, num_layers, batch_first=True)
+
+        # Fully connected layer
+        self.fc = nn.Linear(hidden_dim, output_dim)
+
+    def forward(self, x):
+        # Encoding
+        out, h_n = self.gru1(x)
+
+        # Decoding
+        # We'll initialize the decoder's first input as zeros.
+        dec_input = torch.zeros(x.size(0), 10, self.hidden_dim).to(x.device)  # Assuming batch_first is True
+        out, _ = self.gru2(dec_input, h_n)
+
+        # Predict the next 10 points
+        out = self.fc(out)
+
+        return out
+
 class Predictor:
     def __init__(self, position_model_path,
                        velocity_model_path,
                        position_npz_path,
                        velocity_npz_path,
-                       pos_input_dim=3, pos_hidden_dim=64, pos_output_dim=3, pos_num_layers=2, pos_input_length=21, pos_output_length=10,
-                       vel_input_dim=3, vel_hidden_dim=64, vel_output_dim=3, vel_num_layers=2, vel_input_length=21, vel_output_length=10):
+                       pos_input_dim=3, pos_hidden_dim=64, pos_output_dim=3, pos_num_layers=2, pos_input_length=21, pos_output_length=10, pos_dropout=0.5,
+                       vel_input_dim=3, vel_hidden_dim=64, vel_output_dim=3, vel_num_layers=2, vel_input_length=21, vel_output_length=10, vel_dropout=0.5):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         
         # Load models and normalization parameters, similar to what you did in the if __name__ == '__main__': block
         # checkpoint = torch.load(position_model_path)
         # Extract the state dictionary
         # model_state_dict = checkpoint['state_dict']
-        self.position_model = PositionPredictor(pos_input_dim, pos_hidden_dim, pos_output_dim, pos_num_layers)
+        # self.position_model = PositionPredictor(pos_input_dim, pos_hidden_dim, pos_output_dim, pos_num_layers)
+        self.position_model = PositionPredictor3(pos_input_dim, pos_hidden_dim, pos_output_dim, pos_num_layers, pos_dropout)
         self.position_model.load_state_dict(torch.load(position_model_path, map_location=self.device))
         self.position_model.to(self.device)
         # self.position_model.load_state_dict(model_state_dict)
@@ -148,7 +207,8 @@ class Predictor:
         # checkpoint = torch.load(velocity_model_path)
         # Extract the state dictionary
         # model_state_dict = checkpoint['state_dict']
-        self.velocity_model = VelocityPredictor(vel_input_dim, vel_hidden_dim, vel_output_dim, vel_num_layers)
+        # self.velocity_model = VelocityPredictor(vel_input_dim, vel_hidden_dim, vel_output_dim, vel_num_layers)
+        self.velocity_model = VelocityPredictor2(vel_input_dim, vel_hidden_dim, vel_output_dim, vel_num_layers, vel_dropout)
         self.velocity_model.load_state_dict(torch.load(velocity_model_path, map_location=self.device))
         self.velocity_model.to(self.device)
         # self.velocity_model.load_state_dict(model_state_dict)
@@ -163,6 +223,7 @@ class Predictor:
         # Perform prediction using the loaded models
         predicted_normalized_position = predict_trajectory(self.position_model, normalized_position_sequence, self.device)
         # Denormalize the predictions
+        # predicted_positions=predicted_normalized_position ## REMOVE!!!!!!!!!!!!!!!!!!
         predicted_positions = denormalize_sequence(predicted_normalized_position, self.pos_target_mean, self.pos_target_std)
         
         return predicted_positions.copy()
