@@ -91,10 +91,11 @@ class TrajectoryPredictorNode(Node):
         if len(regularly_sampled_positions)==int(self.buffer_duration/self.dt):
             # Duplicate the last position.
             # This is needed to compute input velocity sequence
-            last_position = regularly_sampled_positions[-1]
-            regularly_sampled_positions.append(last_position)
+            # last_position = regularly_sampled_positions[-1]
+            # regularly_sampled_positions.append(last_position)
             # Convert to numpy array
             np_positions = np.array(regularly_sampled_positions)
+            # print("Shape of nps_positions", np_positions.shape)
             # print("np_position :\n", np_positions)
             
             # Predict positions from the sampled buffer data

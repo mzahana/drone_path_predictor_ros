@@ -216,6 +216,8 @@ class Predictor:
 
         self.pos_input_mean, self.pos_input_std, self.pos_target_mean, self.pos_target_std = load_normalization_parameters(position_npz_path)
         self.vel_input_mean, self.vel_input_std, self.vel_target_mean, self.vel_target_std = load_normalization_parameters(velocity_npz_path)
+        print(f"pos_input_mean: {self.pos_input_mean}, pos_input_std: {self.pos_input_std}")
+        print(f"vel_input_mean: {self.vel_input_mean}, vel_input_std: {self.vel_input_std}")
 
     def predict_positions(self, sequence):
         # Normalize the sequence using the loaded mean and std
@@ -227,12 +229,27 @@ class Predictor:
         predicted_positions = denormalize_sequence(predicted_normalized_position, self.pos_target_mean, self.pos_target_std)
         
         return predicted_positions.copy()
+    def predict_velocity(self, sequence):
+        # Normalize the sequence using the loaded mean and std
+        normalized_velocity_sequence = normalize_sequence(sequence, self.vel_input_mean, self.vel_input_std)
+        # Perform prediction using the loaded models
+        predicted_normalized_velocity = predict_trajectory(self.velocity_model, normalized_velocity_sequence, self.device)
+        # Denormalize the predictions
+        predicted_velocity = denormalize_sequence(predicted_normalized_velocity, self.vel_target_mean, self.vel_target_std)
+        
+        return predicted_velocity.copy()
     
     def predict_positions_from_velocity(self, pos_sequence, dt):
         # Compute velocity from the 21-point input position sequence
         input_velocity = compute_velocity(pos_sequence, dt)
+         
+        # Getting the last row
+        last_vel = input_velocity[-1]
+
+        # Appending the last row to the array
+        extedned_vel = np.append(input_velocity, [last_vel], axis=0)
         # Normalize the input sequence for the velocity model
-        normalized_velocity_input = normalize_sequence(input_velocity, self.vel_input_mean, self.vel_input_std)
+        normalized_velocity_input = normalize_sequence(extedned_vel, self.vel_input_mean, self.vel_input_std)
         predicted_normalized_velocity_output = predict_trajectory(self.velocity_model, normalized_velocity_input, self.device)
         # Denormalize the predicted velocity trajectory
         predicted_velocity_output = denormalize_sequence(predicted_normalized_velocity_output, self.vel_target_mean, self.vel_target_std)
