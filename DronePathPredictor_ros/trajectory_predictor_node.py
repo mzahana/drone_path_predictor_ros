@@ -36,7 +36,9 @@ class TrajectoryPredictorNode(Node):
         position_model_path = self.get_parameter('position_model_path').get_parameter_value().string_value
         velocity_model_path = self.get_parameter('velocity_model_path').get_parameter_value().string_value
         position_npz_path = self.get_parameter('position_npz_path').get_parameter_value().string_value
+        position_stats_file = self.get_parameter('position_stats_file').get_parameter_value().string_value
         velocity_npz_path = self.get_parameter('velocity_npz_path').get_parameter_value().string_value
+        velocity_stats_file = self.get_parameter('velocity_stats_file').get_parameter_value().string_value
         self.buffer_duration = self.get_parameter('buffer_duration').get_parameter_value().double_value
         self.dt = self.get_parameter('dt').get_parameter_value().double_value
         self.pos_hidden_dim = self.get_parameter('pos_hidden_dim').get_parameter_value().integer_value
@@ -52,6 +54,8 @@ class TrajectoryPredictorNode(Node):
                                    velocity_model_path,
                                    position_npz_path,
                                    velocity_npz_path,
+                                   position_stats_file,
+                                   velocity_stats_file,
                                    pos_hidden_dim=self.pos_hidden_dim, pos_num_layers=self.pos_num_layers, pos_dropout=self.pos_dropout,
                                    vel_hidden_dim=self.vel_hidden_dim, vel_num_layers=self.vel_num_layers, vel_dropout=self.vel_dropout)
         self.get_logger().info('Initialized position and velocity models')

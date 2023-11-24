@@ -1,22 +1,24 @@
 # params.yaml
 trajectory_predictor_node:
   ros__parameters:
-    position_model_path: /home/user/shared_volume/ros2_ws/src/DronePathPredictor_ros/config/FT_position_12000_best_model.pth
-    position_npz_path: /home/user/shared_volume/ros2_ws/src/DronePathPredictor_ros/config/FT_12000_norm_stats.npz
-    velocity_model_path: /home/user/shared_volume/ros2_ws/src/DronePathPredictor_ros/config/gz_sim_21_vel_best_model.pth
-    velocity_npz_path: /home/user/shared_volume/ros2_ws/src/DronePathPredictor_ros/config/gz_sim_21_vel_norm_stats.npz
+    position_model_path: /home/user/shared_volume/ros2_ws/src/DronePathPredictor_ros/config/5000_pos_best_model_64_2_0.5_max.pth
+    position_npz_path: /home/user/shared_volume/ros2_ws/src/DronePathPredictor_ros/config/5000_pos_64_2_0.5_max_stats.npz
+    position_stats_file: /home/user/shared_volume/ros2_ws/src/DronePathPredictor_ros/config/pos_stats.npz
+    velocity_model_path: /home/user/shared_volume/ros2_ws/src/DronePathPredictor_ros/config/5000_vel_64_2_0.5_best_model_max.pth
+    velocity_npz_path: /home/user/shared_volume/ros2_ws/src/DronePathPredictor_ros/config/5000_vel_64_2_0.5_max_stats.npz
+    velocity_stats_file: /home/user/shared_volume/ros2_ws/src/DronePathPredictor_ros/config/vel_stats.npz
     buffer_duration: 2.0
     dt: 0.1
     pos_input_length: 20
     pos_output_length: 10
-    pos_hidden_dim: 128
-    pos_num_layers: 3
+    pos_hidden_dim: 64
+    pos_num_layers: 2
     pos_dropout: 0.5
 
     vel_input_length: 20
     vel_output_length: 10
-    vel_hidden_dim: 128
-    vel_num_layers: 3
+    vel_hidden_dim: 64
+    vel_num_layers: 2
     vel_dropout: 0.5
 
     use_velocity_prediction: false

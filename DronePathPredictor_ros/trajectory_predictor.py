@@ -15,11 +15,37 @@ def load_normalization_parameters(npz_file_path):
     npz_file = np.load(npz_file_path)
     return npz_file['input_mean'], npz_file['input_std'], npz_file['target_mean'], npz_file['target_std']
 
+def load_mean_and_L(filename):
+    """
+    Loads the mean and L matrix from a given npz file.
+
+    :param filename: Path to the .npz file containing the stats.
+    :return: Tuple containing the mean and L matrix.
+    """
+    with np.load(filename, allow_pickle=True) as data:
+        mean = data['input_mean']
+        L_matrix = data['L_matrix']
+    return mean, L_matrix
+
 def normalize_sequence(sequence, mean, std):
     return (sequence - mean) / std
 
 def denormalize_sequence(sequence, mean, std):
     return (sequence * std) + mean
+
+def whiten_3d_sequence(sequence, mean, L):
+    # Assuming sequence of shape (N,3)
+    # Apply whitening transformation
+    whitened_sequence = np.dot(sequence - mean, L.T)
+    return whitened_sequence
+
+def dewhiten_3d_sequence(whitened_sequence, mean, L):
+    # Assuming sequence of shape (N,3)
+    # Apply dewhitening transformation
+    L_inv = np.linalg.inv(L)
+    dewhitened_sequence = np.dot(whitened_sequence, L_inv.T) + mean
+    return dewhitened_sequence
+
 
 def predict_trajectory(model, sequence, device):
     sequence_tensor = torch.tensor(sequence, dtype=torch.float32).unsqueeze(0).to(device)
@@ -189,6 +215,8 @@ class Predictor:
                        velocity_model_path,
                        position_npz_path,
                        velocity_npz_path,
+                       position_stats_file,
+                       velocity_stats_file,
                        pos_input_dim=3, pos_hidden_dim=64, pos_output_dim=3, pos_num_layers=2, pos_input_length=21, pos_output_length=10, pos_dropout=0.5,
                        vel_input_dim=3, vel_hidden_dim=64, vel_output_dim=3, vel_num_layers=2, vel_input_length=21, vel_output_length=10, vel_dropout=0.5):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -219,28 +247,41 @@ class Predictor:
         print(f"pos_input_mean: {self.pos_input_mean}, pos_input_std: {self.pos_input_std}")
         print(f"vel_input_mean: {self.vel_input_mean}, vel_input_std: {self.vel_input_std}")
 
+        self.pos_mean, self.pos_L = load_mean_and_L(position_stats_file)
+        self.vel_mean, self.vel_L = load_mean_and_L(velocity_stats_file)
+
     def predict_positions(self, sequence):
         # Normalize the sequence using the loaded mean and std
-        normalized_position_sequence = normalize_sequence(sequence[:-1], self.pos_input_mean, self.pos_input_std)
+        normalized_position_sequence = normalize_sequence(sequence, self.pos_input_mean, self.pos_input_std)
+        whitened_pos_seq = whiten_3d_sequence(sequence, self.pos_mean, self.pos_L)
+        
         # Perform prediction using the loaded models
+        # predicted_normalized_position = predict_trajectory(self.position_model, whitened_pos_seq, self.device)
         predicted_normalized_position = predict_trajectory(self.position_model, normalized_position_sequence, self.device)
+        
         # Denormalize the predictions
-        # predicted_positions=predicted_normalized_position ## REMOVE!!!!!!!!!!!!!!!!!!
+        # predicted_positions = dewhiten_3d_sequence(predicted_normalized_position, self.pos_mean, self.pos_L)
         predicted_positions = denormalize_sequence(predicted_normalized_position, self.pos_target_mean, self.pos_target_std)
         
         return predicted_positions.copy()
+    
     def predict_velocity(self, sequence):
         # Normalize the sequence using the loaded mean and std
         normalized_velocity_sequence = normalize_sequence(sequence, self.vel_input_mean, self.vel_input_std)
+        whitened_vel_seq = whiten_3d_sequence(sequence, self.vel_mean, self.vel_L)
+
         # Perform prediction using the loaded models
+        # predicted_normalized_velocity = predict_trajectory(self.velocity_model, whitened_vel_seq, self.device)
         predicted_normalized_velocity = predict_trajectory(self.velocity_model, normalized_velocity_sequence, self.device)
+        
         # Denormalize the predictions
+        # predicted_velocity = dewhiten_3d_sequence(predicted_normalized_velocity, self.vel_mean, self.vel_L)
         predicted_velocity = denormalize_sequence(predicted_normalized_velocity, self.vel_target_mean, self.vel_target_std)
         
         return predicted_velocity.copy()
     
     def predict_positions_from_velocity(self, pos_sequence, dt):
-        # Compute velocity from the 21-point input position sequence
+        # Compute velocity from the input position sequence
         input_velocity = compute_velocity(pos_sequence, dt)
          
         # Getting the last row
