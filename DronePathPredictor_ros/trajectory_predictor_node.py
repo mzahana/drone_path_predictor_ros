@@ -21,6 +21,8 @@ class TrajectoryPredictorNode(Node):
                 ('velocity_model_path', 'path/to/your/velocity_model.pt'),
                 ('position_npz_path', 'path/to/your/position_normalization_parameters.npz'),
                 ('velocity_npz_path', 'path/to/your/velocity_normalization_parameters.npz'),
+                ('position_stats_file', 'position_stats_file'),
+                ('velocity_stats_file', 'velocity_stats_file'),
                 ('buffer_duration', 2.0),
                 ('dt', 0.1),
                 ('pos_hidden_dim', 64),
@@ -30,6 +32,7 @@ class TrajectoryPredictorNode(Node):
                 ('vel_num_layers', 2),
                 ('vel_dropout', 0.5),
                 ('use_velocity_prediction', False),
+                ('use_whitening', False)
             ]
         )
         
@@ -48,6 +51,7 @@ class TrajectoryPredictorNode(Node):
         self.vel_num_layers = self.get_parameter('vel_num_layers').get_parameter_value().integer_value
         self.vel_dropout = self.get_parameter('vel_dropout').get_parameter_value().double_value
         self.use_velocity_prediction = self.get_parameter('use_velocity_prediction').get_parameter_value().bool_value
+        self.use_whitening = self.get_parameter('use_whitening').get_parameter_value().bool_value
 
         # Initialize the Predictor
         self.predictor = Predictor(position_model_path,
@@ -57,7 +61,8 @@ class TrajectoryPredictorNode(Node):
                                    position_stats_file,
                                    velocity_stats_file,
                                    pos_hidden_dim=self.pos_hidden_dim, pos_num_layers=self.pos_num_layers, pos_dropout=self.pos_dropout,
-                                   vel_hidden_dim=self.vel_hidden_dim, vel_num_layers=self.vel_num_layers, vel_dropout=self.vel_dropout)
+                                   vel_hidden_dim=self.vel_hidden_dim, vel_num_layers=self.vel_num_layers, vel_dropout=self.vel_dropout,
+                                   use_whitening= self.use_whitening)
         self.get_logger().info('Initialized position and velocity models')
         
         # Create the PoseBuffer
