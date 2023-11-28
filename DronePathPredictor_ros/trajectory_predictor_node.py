@@ -19,8 +19,6 @@ class TrajectoryPredictorNode(Node):
             parameters=[
                 ('position_model_path', 'path/to/your/position_model.pt'),
                 ('velocity_model_path', 'path/to/your/velocity_model.pt'),
-                ('position_npz_path', 'path/to/your/position_normalization_parameters.npz'),
-                ('velocity_npz_path', 'path/to/your/velocity_normalization_parameters.npz'),
                 ('position_stats_file', 'position_stats_file'),
                 ('velocity_stats_file', 'velocity_stats_file'),
                 ('buffer_duration', 2.0),
@@ -38,9 +36,7 @@ class TrajectoryPredictorNode(Node):
         
         position_model_path = self.get_parameter('position_model_path').get_parameter_value().string_value
         velocity_model_path = self.get_parameter('velocity_model_path').get_parameter_value().string_value
-        position_npz_path = self.get_parameter('position_npz_path').get_parameter_value().string_value
         position_stats_file = self.get_parameter('position_stats_file').get_parameter_value().string_value
-        velocity_npz_path = self.get_parameter('velocity_npz_path').get_parameter_value().string_value
         velocity_stats_file = self.get_parameter('velocity_stats_file').get_parameter_value().string_value
         self.buffer_duration = self.get_parameter('buffer_duration').get_parameter_value().double_value
         self.dt = self.get_parameter('dt').get_parameter_value().double_value
@@ -56,8 +52,6 @@ class TrajectoryPredictorNode(Node):
         # Initialize the Predictor
         self.predictor = Predictor(position_model_path,
                                    velocity_model_path,
-                                   position_npz_path,
-                                   velocity_npz_path,
                                    position_stats_file,
                                    velocity_stats_file,
                                    pos_hidden_dim=self.pos_hidden_dim, pos_num_layers=self.pos_num_layers, pos_dropout=self.pos_dropout,
@@ -131,9 +125,9 @@ class TrajectoryPredictorNode(Node):
                 pose_stamped = PoseStamped()
                 pose_stamped.header.stamp = self.get_clock().now().to_msg()
                 pose_stamped.header.frame_id = msg.header.frame_id
-                pose_stamped.pose.position.x = position[0]
-                pose_stamped.pose.position.y = position[1]
-                pose_stamped.pose.position.z = position[2]
+                pose_stamped.pose.position.x = float(position[0])
+                pose_stamped.pose.position.y = float(position[1])
+                pose_stamped.pose.position.z = float(position[2])
                 # Assume no orientation information is available; quaternion set to identity
                 pose_stamped.pose.orientation.w = 1.0
                 path_msg.poses.append(pose_stamped)
@@ -142,9 +136,9 @@ class TrajectoryPredictorNode(Node):
                     pose_stamped = PoseStamped()
                     pose_stamped.header.stamp = self.get_clock().now().to_msg()
                     pose_stamped.header.frame_id = msg.header.frame_id
-                    pose_stamped.pose.position.x = position[0]
-                    pose_stamped.pose.position.y = position[1]
-                    pose_stamped.pose.position.z = position[2]
+                    pose_stamped.pose.position.x = float(position[0])
+                    pose_stamped.pose.position.y = float(position[1])
+                    pose_stamped.pose.position.z = float(position[2])
                     # Assume no orientation information is available; quaternion set to identity
                     pose_stamped.pose.orientation.w = 1.0
                     path_msg.poses.append(pose_stamped)
@@ -161,9 +155,9 @@ class TrajectoryPredictorNode(Node):
                     pose_stamped = PoseStamped()
                     pose_stamped.header.stamp = self.get_clock().now().to_msg()
                     pose_stamped.header.frame_id = msg.header.frame_id
-                    pose_stamped.pose.position.x = position[0]
-                    pose_stamped.pose.position.y = position[1]
-                    pose_stamped.pose.position.z = position[2]
+                    pose_stamped.pose.position.x = float(position[0])
+                    pose_stamped.pose.position.y = float(position[1])
+                    pose_stamped.pose.position.z = float(position[2])
                     # Assume no orientation information is available; quaternion set to identity
                     pose_stamped.pose.orientation.w = 1.0
                     path_msg.poses.append(pose_stamped)
