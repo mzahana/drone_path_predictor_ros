@@ -71,6 +71,8 @@ class TrajectoryPredictorNode(Node):
         # Create a publisher for the predicted path
         self.path_publisher = self.create_publisher(Path, 'out/gru_predicted_path', 10)
         self.history_path_publisher = self.create_publisher(Path, 'out/gru_history_path', 10)
+        self.actual_predicted_path_pub = self.create_publisher(Path, 'out/actual_predicted_path', 10)
+        self.evaluated_predicted_path_pub = self.create_publisher(Path, 'out/evaluated_predicted_path', 10)
 
 
     def pose_callback(self, msg: PoseArray):
@@ -89,6 +91,12 @@ class TrajectoryPredictorNode(Node):
 
         # Get regularly sampled positions from the PoseBuffer
         regularly_sampled_positions = self.pose_buffer.get_regularly_sampled_positions()
+        # Starting point: the last timestamp in the existing list plus dt
+        start_timestamp = self.pose_buffer.timestamps[-1] + self.dt
+
+        # Generate the new list of timestamps
+        future_timestamps = [start_timestamp + i * self.dt for i in range(len(regularly_sampled_positions))]
+
         # self.get_logger().info(f'# regularly_sampled_positions \n {len(regularly_sampled_positions)}')
         
         if len(regularly_sampled_positions)==int(self.buffer_duration/self.dt):
@@ -116,6 +124,55 @@ class TrajectoryPredictorNode(Node):
                 predictions = predicted_positions
 
             if predictions is not None:
+
+                if len(self.pose_buffer.trajectory_to_evaluate) < 1:
+                    self.pose_buffer.trajectory_to_evaluate = predictions.tolist()
+                    self.pose_buffer.trajectory_to_evaluate_timestamps = future_timestamps.copy()
+
+                if(self.pose_buffer.update_evaluation_buffer(position, t, len(predictions))):
+                    mse = self.pose_buffer.evaluate_trajectory()
+                    self.get_logger().info(f'Trajectory MSE: {mse}')
+                    
+                    # Create a Path message for predictions
+                    path_msg = Path()
+                    path_msg.header.stamp = self.get_clock().now().to_msg()
+                    path_msg.header.frame_id = msg.header.frame_id
+                    # Fill the Path message with the predicted positions
+                    for position in self.pose_buffer.trajectory_to_evaluate:
+                        pose_stamped = PoseStamped()
+                        pose_stamped.header.stamp = self.get_clock().now().to_msg()
+                        pose_stamped.header.frame_id = msg.header.frame_id
+                        pose_stamped.pose.position.x = float(position[0])
+                        pose_stamped.pose.position.y = float(position[1])
+                        pose_stamped.pose.position.z = float(position[2])
+                        # Assume no orientation information is available; quaternion set to identity
+                        pose_stamped.pose.orientation.w = 1.0
+                        path_msg.poses.append(pose_stamped)
+
+                    # Publish the predicted Path message
+                    self.evaluated_predicted_path_pub.publish(path_msg)
+
+                    # Create a Path message for predictions
+                    path_msg = Path()
+                    path_msg.header.stamp = self.get_clock().now().to_msg()
+                    path_msg.header.frame_id = msg.header.frame_id
+                    # Fill the Path message with the actual future positions
+                    for position in self.pose_buffer.evaluation_buffer:
+                        pose_stamped = PoseStamped()
+                        pose_stamped.header.stamp = self.get_clock().now().to_msg()
+                        pose_stamped.header.frame_id = msg.header.frame_id
+                        pose_stamped.pose.position.x = float(position[0])
+                        pose_stamped.pose.position.y = float(position[1])
+                        pose_stamped.pose.position.z = float(position[2])
+                        # Assume no orientation information is available; quaternion set to identity
+                        pose_stamped.pose.orientation.w = 1.0
+                        path_msg.poses.append(pose_stamped)
+
+                    # Publish the actual predicted Path message
+                    self.actual_predicted_path_pub.publish(path_msg)
+
+                    self.pose_buffer.reset_evaluation_trajectory()
+
                 # Create a Path message
                 path_msg = Path()
                 path_msg.header.stamp = self.get_clock().now().to_msg()
