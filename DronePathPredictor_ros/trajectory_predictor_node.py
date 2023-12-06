@@ -5,6 +5,7 @@ from rclpy.node import Node
 from geometry_msgs.msg import PoseArray
 from nav_msgs.msg import Path
 from geometry_msgs.msg import PoseStamped
+from std_msgs.msg import Float32
 from .trajectory_predictor import Predictor
 from .pose_buffer import PoseBuffer
 import numpy as np
@@ -61,6 +62,10 @@ class TrajectoryPredictorNode(Node):
         
         # Create the PoseBuffer
         self.pose_buffer = PoseBuffer(buffer_duration=self.buffer_duration, dt=self.dt)
+
+        self.mse_sum = 0.0
+        self.rmse_sum = 0.0
+        self.evaluation_counter = 0
         
         # Create a subscription to the PoseArray topic
         self.create_subscription(
@@ -73,6 +78,8 @@ class TrajectoryPredictorNode(Node):
         self.history_path_publisher = self.create_publisher(Path, 'out/gru_history_path', 10)
         self.actual_predicted_path_pub = self.create_publisher(Path, 'out/actual_predicted_path', 10)
         self.evaluated_predicted_path_pub = self.create_publisher(Path, 'out/evaluated_predicted_path', 10)
+        self.evaluation_mse_pub = self.create_publisher(Float32, 'out/evaluation_mse', 10)
+        self.evaluation_rmse_pub = self.create_publisher(Float32, 'out/evaluation_rmse', 10)
 
 
     def pose_callback(self, msg: PoseArray):
@@ -130,8 +137,22 @@ class TrajectoryPredictorNode(Node):
                     self.pose_buffer.trajectory_to_evaluate_timestamps = future_timestamps.copy()
 
                 if(self.pose_buffer.update_evaluation_buffer(position, t, len(predictions))):
-                    mse = self.pose_buffer.evaluate_trajectory()
-                    self.get_logger().info(f'Trajectory MSE: {mse}')
+                    mse, rmse = self.pose_buffer.evaluate_trajectory()
+                    
+                    self.mse_sum += mse
+                    self.rmse_sum += rmse
+                    self.evaluation_counter +=1
+
+                    avg_mse = self.mse_sum / self.evaluation_counter
+                    avg_rmse = self.rmse_sum / self.evaluation_counter
+                    self.get_logger().info(f'Average MSE: {avg_mse}')
+                    self.get_logger().info(f'Average RMSE: {avg_rmse}')
+
+                    float_msg = Float32()
+                    float_msg.data = mse
+                    self.evaluation_mse_pub.publish(float_msg)
+                    float_msg.data = rmse
+                    self.evaluation_rmse_pub.publish(float_msg)
                     
                     # Create a Path message for predictions
                     path_msg = Path()

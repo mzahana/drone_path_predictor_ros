@@ -87,8 +87,9 @@ class PoseBuffer:
             error_sum += squared_distance
 
         # Calculate the mean squared error
-        mse = error_sum / len(self.evaluation_buffer)
-        return mse
+        mse = error_sum / len(self.evaluation_buffer) # MSE
+        rmse = mse**0.5 # RMSE
+        return mse, rmse
         
 
     def reset_evaluation_trajectory(self):
