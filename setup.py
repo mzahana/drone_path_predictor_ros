@@ -37,6 +37,7 @@
 # )
 
 from setuptools import setup, find_packages
+from glob import glob
 import os
 
 package_name = 'DronePathPredictor_ros'
@@ -50,8 +51,10 @@ def recursive_glob(root_dir, file_pattern):
 # Get all the launch files
 launch_files = recursive_glob(os.path.join(package_name, 'launch'), '*.launch.py')
 
-# Get all the config files and subdirectory files
-config_files = recursive_glob(os.path.join(package_name, 'config'), '*.*')
+# # Get all the config files and subdirectory files
+# config_files = recursive_glob(os.path.join(package_name, 'config'), ['*.*', '*.yaml', '*.yml'])
+# Get all the config files
+config_files = [os.path.relpath(f, package_name) for f in glob(os.path.join(package_name, 'config', '*'))]
 
 # Get all the test files
 test_files = recursive_glob(os.path.join(package_name, 'test'), '*.py')
@@ -63,7 +66,7 @@ setup(
     data_files=[
         (os.path.join('share', package_name), ['package.xml']),
         (os.path.join('share', package_name, 'launch'), launch_files),
-        (os.path.join('share', package_name, 'config'), config_files),
+        (os.path.join('share', package_name, 'config'), glob('config/*.*')),
         # Add any other directories you need to include
     ],
     install_requires=['setuptools'],
