@@ -66,6 +66,7 @@ class TrajectoryPredictorNode(Node):
         self.mse_sum = 0.0
         self.rmse_sum = 0.0
         self.evaluation_counter = 0
+        self.max_counter = 100
         
         # Create a subscription to the PoseArray topic
         self.create_subscription(
@@ -139,20 +140,23 @@ class TrajectoryPredictorNode(Node):
                 if(self.pose_buffer.update_evaluation_buffer(position, t, len(predictions))):
                     mse, rmse = self.pose_buffer.evaluate_trajectory()
                     
-                    self.mse_sum += mse
-                    self.rmse_sum += rmse
-                    self.evaluation_counter +=1
+                    # Compute Average MSE, and average RMSE for a maximum number of points =  self.max_counter
+                    if self.evaluation_counter <= self.max_counter:
+                        self.mse_sum += mse
+                        self.rmse_sum += rmse
+                        self.evaluation_counter +=1
 
-                    avg_mse = self.mse_sum / self.evaluation_counter
-                    avg_rmse = self.rmse_sum / self.evaluation_counter
-                    self.get_logger().info(f'Average MSE: {avg_mse}')
-                    self.get_logger().info(f'Average RMSE: {avg_rmse}')
+                        avg_mse = self.mse_sum / self.evaluation_counter
+                        avg_rmse = self.rmse_sum / self.evaluation_counter
+                        self.get_logger().info(f'Average MSE: {avg_mse}')
+                        self.get_logger().info(f'Average RMSE: {avg_rmse}')
+                        self.get_logger().info(f'evaluation_counter: {self.evaluation_counter}')
 
-                    float_msg = Float32()
-                    float_msg.data = mse
-                    self.evaluation_mse_pub.publish(float_msg)
-                    float_msg.data = rmse
-                    self.evaluation_rmse_pub.publish(float_msg)
+                        float_msg = Float32()
+                        float_msg.data = mse
+                        self.evaluation_mse_pub.publish(float_msg)
+                        float_msg.data = rmse
+                        self.evaluation_rmse_pub.publish(float_msg)
                     
                     # Create a Path message for predictions
                     path_msg = Path()
