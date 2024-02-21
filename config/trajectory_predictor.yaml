@@ -1,25 +1,24 @@
 # params.yaml
 trajectory_predictor_node:
   ros__parameters:
-    position_model_path: /home/user/shared_volume/ros2_ws/src/DronePathPredictor_ros/config/5000_pos_best_model_64_2_0.5_normalized.pth
-    position_npz_path: /home/user/shared_volume/ros2_ws/src/DronePathPredictor_ros/config/5000_pos_64_2_0.5_max_stats.npz
-    position_stats_file: /home/user/shared_volume/ros2_ws/src/DronePathPredictor_ros/config/pos_stats.npz
-    velocity_model_path: /home/user/shared_volume/ros2_ws/src/DronePathPredictor_ros/config/5000_vel_64_2_0.5_best_model_normalized.pth
-    velocity_npz_path: /home/user/shared_volume/ros2_ws/src/DronePathPredictor_ros/config/5000_vel_64_2_0.5_max_stats.npz
-    velocity_stats_file: /home/user/shared_volume/ros2_ws/src/DronePathPredictor_ros/config/vel_stats.npz
+    position_model_path: /home/user/shared_volume/ros2_ws/src/DronePathPredictor_ros/config/5000_gz_dataset/5000_pos_white_norm_256_5_0p5.pth
+    position_stats_file: /home/user/shared_volume/ros2_ws/src/DronePathPredictor_ros/config/5000_gz_dataset/pos_stats.npz
+    velocity_model_path: /home/user/shared_volume/ros2_ws/src/DronePathPredictor_ros/config/5000_gz_dataset/5000_vel_white_norm_256_5_0p5.pth
+    velocity_stats_file: /home/user/shared_volume/ros2_ws/src/DronePathPredictor_ros/config/5000_gz_dataset/vel_stats.npz
     buffer_duration: 2.0
     dt: 0.1
     pos_input_length: 20
     pos_output_length: 10
-    pos_hidden_dim: 64
-    pos_num_layers: 2
+    pos_hidden_dim: 256
+    pos_num_layers: 5
     pos_dropout: 0.5
 
     vel_input_length: 20
     vel_output_length: 10
-    vel_hidden_dim: 64
-    vel_num_layers: 2
+    vel_hidden_dim: 256
+    vel_num_layers: 5
     vel_dropout: 0.5
 
-    use_velocity_prediction: true
+    use_velocity_prediction: false
+    # false: use max norm.
     use_whitening: true
