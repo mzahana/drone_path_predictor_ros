@@ -20,16 +20,16 @@ def generate_launch_description():
         default_value='out/gru_predicted_path',
         description='The output topic for Path messages.'
     )
+    param_file_argument = DeclareLaunchArgument(
+        'param_file',
+        default_value=default_param_file,
+        description='Path to the parametetrs file.'
+    )
     
     return LaunchDescription([
         pose_topic_argument,
         path_topic_argument,
-        
-        DeclareLaunchArgument(
-            'param_file',
-            default_value=default_param_file,
-            description='Path to the YAML file with node parameters.'
-        ),
+        param_file_argument,
         
         Node(
             package='drone_path_predictor_ros',
