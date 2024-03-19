@@ -40,7 +40,7 @@ from setuptools import setup, find_packages
 from glob import glob
 import os
 
-package_name = 'DronePathPredictor_ros'
+package_name = 'drone_path_predictor_ros'
 
 # Function to recursively list all files in a directory
 def recursive_glob(root_dir, file_pattern):

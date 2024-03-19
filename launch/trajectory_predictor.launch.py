@@ -6,7 +6,7 @@ from ament_index_python.packages import get_package_share_directory
 import os
 
 def generate_launch_description():
-    config_dir = os.path.join(get_package_share_directory('DronePathPredictor_ros'), 'config')
+    config_dir = os.path.join(get_package_share_directory('drone_path_predictor_ros'), 'config')
     default_param_file = os.path.join(config_dir, 'trajectory_predictor.yaml')
     
     # Declare the arguments for remapping
@@ -32,7 +32,7 @@ def generate_launch_description():
         ),
         
         Node(
-            package='DronePathPredictor_ros',
+            package='drone_path_predictor_ros',
             executable='trajectory_predictor_node',
             name='trajectory_predictor_node',
             output='screen',

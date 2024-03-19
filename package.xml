@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>DronePathPredictor_ros</name>
+  <name>drone_path_predictor_ros</name>
   <version>0.0.1</version>
   <description>TODO: Package description</description>
   <maintainer email="mohamedashraf123@gmail.com">Mohamed Abdelkader</maintainer>
