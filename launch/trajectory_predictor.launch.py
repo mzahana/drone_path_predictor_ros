@@ -39,7 +39,7 @@ def generate_launch_description():
             parameters=[LaunchConfiguration('param_file')],
             remappings=[
                 ('in/pose_array', LaunchConfiguration('pose_topic')),
-                ('out/predicted_path', LaunchConfiguration('path_topic')),
+                ('out/gru_predicted_path', LaunchConfiguration('path_topic')),
                 ('out/gru_history_path','out/gru_history_path'),
                 
             ]
