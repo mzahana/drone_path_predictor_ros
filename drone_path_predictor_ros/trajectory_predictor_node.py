@@ -9,6 +9,7 @@ from std_msgs.msg import Float32
 from .trajectory_predictor import Predictor
 from .pose_buffer import PoseBuffer
 import numpy as np
+import time
 
 class TrajectoryPredictorNode(Node):
     def __init__(self):
@@ -67,6 +68,9 @@ class TrajectoryPredictorNode(Node):
         self.rmse_sum = 0.0
         self.evaluation_counter = 0
         self.max_counter = 100
+
+        self.execution_timer_counter_ = 0.0
+        self.aggregate_execution_time_ = 0.0
         
         # Create a subscription to the PoseArray topic
         self.create_subscription(
@@ -84,6 +88,8 @@ class TrajectoryPredictorNode(Node):
 
 
     def pose_callback(self, msg: PoseArray):
+        # Compute execution time
+        t0 = time.time()
         # Extract the first pose from the PoseArray
         first_pose = msg.poses[0]
         
@@ -244,6 +250,13 @@ class TrajectoryPredictorNode(Node):
                     pose_stamped.pose.orientation.w = 1.0
                     path_msg.poses.append(pose_stamped)
                 self.history_path_publisher.publish(path_msg)
+
+                t1 = time.time()
+                self.execution_timer_counter_ += 1
+                self.aggregate_execution_time_ += (t1-t0)
+                average_execution_time = self.aggregate_execution_time_ / self.execution_timer_counter_
+                self.get_logger().info(f'Average execution time: {average_execution_time} second(s)')
+                self.get_logger().info(f'Average execution frequency: {1/average_execution_time} Hz')
 
 
 def main(args=None):
