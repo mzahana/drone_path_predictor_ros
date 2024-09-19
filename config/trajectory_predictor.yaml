@@ -19,6 +19,6 @@ trajectory_predictor_node:
     vel_num_layers: 5
     vel_dropout: 0.5
 
-    use_velocity_prediction: false
+    use_velocity_prediction: true
     # false: use max norm.
     use_whitening: true
