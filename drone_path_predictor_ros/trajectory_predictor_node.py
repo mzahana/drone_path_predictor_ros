@@ -255,8 +255,8 @@ class TrajectoryPredictorNode(Node):
                 self.execution_timer_counter_ += 1
                 self.aggregate_execution_time_ += (t1-t0)
                 average_execution_time = self.aggregate_execution_time_ / self.execution_timer_counter_
-                self.get_logger().info(f'Average execution time: {average_execution_time} second(s)')
-                self.get_logger().info(f'Average execution frequency: {1/average_execution_time} Hz')
+                # self.get_logger().info(f'Average execution time: {average_execution_time} second(s)')
+                # self.get_logger().info(f'Average execution frequency: {1/average_execution_time} Hz')
 
 
 def main(args=None):
