@@ -25,16 +25,23 @@ def generate_launch_description():
         default_value=default_param_file,
         description='Path to the parametetrs file.'
     )
+    gru_namespace_argument = DeclareLaunchArgument(
+        'gru_namespace',
+        default_value='',
+        description='Node namespace.'
+    )
     
     return LaunchDescription([
         pose_topic_argument,
         path_topic_argument,
         param_file_argument,
+        gru_namespace_argument,
         
         Node(
             package='drone_path_predictor_ros',
             executable='trajectory_predictor_node',
             name='trajectory_predictor_node',
+            namespace=LaunchConfiguration('gru_namespace'),
             output='screen',
             parameters=[LaunchConfiguration('param_file')],
             remappings=[
